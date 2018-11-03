@@ -6,6 +6,12 @@ import tensorflow as tf
 from tensorflow.python.ops.distributions import distribution as distribution_lib
 import numpy as np
 
+_MAXINT32 = 2**31 - 1
+
+def truncate_seed(seed):
+  return seed % _MAXINT32  # Truncate to fit into 32-bit integer
+
+
 class IndependentList(distribution_lib.Distribution):
   """Independent distribution from a list of distributions.
   """
@@ -64,7 +70,7 @@ class IndependentList(distribution_lib.Distribution):
     return event_shape
 
   def _sample_n(self, n, seed):
-    rs = np.random.RandomState(seed=seed)
+    rs = np.random.RandomState(seed=truncate_seed(seed))
     # get random seeds (have to be Python ints)
     seeds = rs.randint(low=0,high=10000, size=len(self.distributions))
     samples = [tf.reshape(d.sample(n, seed=seed),[n,-1])
@@ -78,4 +84,3 @@ class IndependentList(distribution_lib.Distribution):
                    tf.concat([tf.shape(x_i)[:-1], [-1]], axis=-1))
                    for x_i, d in zip(splitted_x, self.distributions)]
     return tf.reduce_sum(tf.stack(log_probs, axis=-1), axis=-1)
-
